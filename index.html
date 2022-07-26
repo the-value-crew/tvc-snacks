@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://unpkg.com/tailwindcss@2.1.4/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="icon.png">
+    <title>TVC - Snacks</title>
+
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html{font-family: 'Open Sans', sans-serif;}
+    </style>
+</head>
+
+<body class="h-screen w-screen overflow-hidden flex items-center justify-center" style="background: #edf2f7;">
+    <div class="flex items-center justify-center h-screen">
+        <div class="container">
+            <div class="bg-white rounded-lg shadow-lg w-full my-4 overflow-auto">
+
+                <div id="app" x-data="restaurant" x-init="init()">
+                    <div class="flex">
+
+                        <!-- menu list -->
+                        <div class="menu-list flex flex-col bg-gray-100 rounded-l-lg" x-init="$watch('searchKeyword', () => computeMenuList())">
+
+                            <input type="text" class="block h-12 bg-gray-200 px-8 outline-none text-gray-500 italic" placeholder="Search" x-model="searchKeyword">
+
+                            <div class="overflow-auto" style="max-height: 90vh">
+                                <template x-for="(menuListItem, index) in menuList">
+                                    <div 
+                                        class="menu-list-item cursor-pointer hover:bg-white px-8 py-2" 
+                                        :class="{ 'bg-red-500 text-white hover:bg-red-500': selectedCat && selectedCat.category_id == menuListItem.category_id}"
+                                        x-on:click="select(menuListItem.category_id)">
+                                        <span x-text="menuListItem.name"></span>
+                                    </div>
+                                </template>
+                            </div>
+                            
+                        </div>
+
+                        <!-- selected menu -->
+                        <div class="selected-menu-list flex-grow w-96">
+                            
+                            <!-- topbar -->
+                                <template x-if="selectedCat">
+                                    <div class="bg-gray-200 pr-4 pl-2 h-12 flex justify-between items-center">
+                                        <span x-text="selectedCat.name" class="text-xl text-gray-800"></span>
+                                        <span x-text="selectedCat.sub_category.length" class="rounded-full bg-gray-300 w-8 h-8 leading-8 text-center text-gray-500 font-weight-bold"></span>
+                                    </div>
+                                </template>
+
+                                    <div class="overflow-auto" style="max-height: 90vh">
+                                        <template x-for="subCat in selectedCat.sub_category">
+                                            <div class="selected-menu-list-item px-2 py-4">
+
+                                                    <!-- sub categories -->
+                                                    <div :class="{'group cursor-pointer hover:bg-gray-100 py-2 px-4 rounded-lg flex justify-between items-center': subCat.menu && subCat.menu.length == 0}">
+
+                                                        <div class="flex flex-col">
+                                                            <p>
+                                                                <span x-text="subCat.name" class="text-lg font-weight-bold"></span>
+                                                            </p>
+                                                            <template x-if="!(subCat.menu && subCat.menu.length)">
+                                                                <p class="italic text-gray-500">
+                                                                    Rs.
+                                                                    <span x-text="subCat.price"></span>
+                                                                </p>
+                                                            </template>
+                                                        </div>
+
+                                                        <!-- plus button -->
+                                                        <template x-if="!(subCat && subCat.menu && subCat.menu.length)">
+                                                            <div 
+                                                                class="hidden group-hover:block rounded-full bg-gray-300 w-8 h-8 leading-8 text-center text-gray-500 font-weight-bold select-none text-xl"
+                                                                x-on:click="selectItem({name: (selectedCat.name  + ' - ' + subCat.name), price: subCat.price})"
+                                                                >
+                                                                +
+                                                            </div>
+                                                        </template>
+                                                    </div>
+
+                                                    <!-- sub category menu -->
+                                                    <template x-if="subCat.menu && subCat.menu.length">
+                                                        <template x-for="menuItem in subCat.menu">
+                                                            <div class="group flex justify-between items-center cursor-pointer hover:bg-gray-100 rounded-lg w-full px-8 py-2">
+                                                                <div class="flex flex-col">
+                                                                    <p>
+                                                                        <span x-text="menuItem.name" class="text-sm font-weight-bold"></span>
+                                                                    </p>
+                                                                    <p class="italic text-gray-500 text-xs">
+                                                                        Rs.
+                                                                        <span x-text="menuItem.price"></span>
+                                                                    </p>
+                                                                </div>
+
+                                                                <!-- plus button -->
+                                                                <div 
+                                                                    class="hidden group-hover:block rounded-full bg-gray-300 w-8 h-8 leading-8 text-center text-gray-500 font-weight-bold text-xl select-none" 
+                                                                
+                                                                    x-on:click="selectItem({name: (selectedCat.name  + ' - ' + subCat.name + ' - ' + menuItem.name), price: menuItem.price})"
+                                                                    >
+                                                                    +
+                                                                </div>
+
+                                                            </div>
+                                                        </template>
+                                                    </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                        </div>
+                    </div>
+
+
+                    <!-- buy list -->
+                    <template x-if="showSelectionMenu">
+                        <div class="absolute w-64 h-96 bg-white right-8 bottom-28 rounded-lg overflow-auto shadow-sm">
+
+                            <div class="flex flex-col h-full">
+                                <!-- toolbar -->
+                                <div class="bg-gray-100 rounded-t-lg flex justify-end items-center">
+                                    <img src="./copy.png" class="cursor-pointer w-4 h-4 mx-1" title="Copy" x-on:click="copySelectionMenu()">
+                                    <img src="./eraser.png" class="cursor-pointer w-6 h-6 mx-1" title="Clear all" x-on:click="clearSelectionMenu()">
+                                </div>
+    
+                                <!-- body -->
+                                <div class="px-2 py-2 flex-grow overflow-auto">
+                                    <div class="table w-full">
+                                        <div class="table-row-group text-xs">
+                                            <template x-if="selectionMenu && selectionMenu.length">
+                                                <template x-for="item in selectionMenu">
+                                                    <div class="table-row pb-4">
+                                                        <div class="table-cell pr-2">
+                                                            <div 
+                                                                class="rounded-full bg-gray-300 w-4 h-4 leading-4 text-center text-gray-500 font-weight-bold text-sm select-none cursor-pointer" 
+                                                                x-on:click="removeItem(item.id)">
+                                                                -
+                                                            </div>
+                                                        </div>
+                                                        <div class="table-cell pr-2 pb-4" x-text="item.name" class="text-xs py-2"></div>
+                                                        <div class="table-cell pr-2" x-text="item.price" class="text-xs py-2 text-gray-800 italic"></div>
+                                                    </div>
+                                                </template>
+                                            </template>
+                                        </div>
+                                    </div>
+                                   
+                                </div>
+    
+                                <!-- footer -->
+                                <div class="w-full bg-gray-100 px-2 py-1 flex justify-between">
+                                    <span class="font-weight-bold">
+                                        Total
+                                    </span>
+
+                                    <span x-text="selectionMenuTotal">
+                                    </span>
+                                </div>
+                            </div>
+
+
+                        </div>
+                    </template>
+
+
+                    <!-- buy list button -->
+                    <div class="absolute w-16 h-16 p-4 cursor-pointer rounded-full bg-white shadow-lg right-8 bottom-8 grid place-items-center hover:shadow-2xl" x-on:click="showSelectionMenu = !showSelectionMenu">
+                        <img src="./menu.png">
+                    </div>
+                    <template x-if="selectionMenu.length">
+                        <div class="absolute w-6 h-6 rounded-full bg-red-500 text-white right-8 bottom-20 grid place-items-center">
+                            <span x-text="selectionMenu.length" class="text-xs"></span>
+                        </div>
+                    </template>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.9.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.9.1/firebase-database.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyDjejLmr1N6KSH3cnO3C-mppg2Vs1RcyWw",
+          authDomain: "accounts-8e233.firebaseapp.com",
+          databaseURL: "https://accounts-8e233.firebaseio.com",
+          projectId: "accounts-8e233",
+          storageBucket: "accounts-8e233.appspot.com",
+          messagingSenderId: "670472513933",
+          appId: "1:670472513933:web:1ada897fdffb99f45e35c4",
+          measurementId: "G-5RB6F4Z3H2"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        window.firebaseDb = getDatabase(app);
+
+        window.firebaseSync = (data) => {
+            set(ref(window.firebaseDb, 'tvcSnacks/'), data);
+        }
+
+        window.firebaseGetData = (callback) => {
+            const tvsSnacksRef = ref(window.firebaseDb, 'tvcSnacks/');
+            onValue(tvsSnacksRef, (snapshot) => {
+                const data = snapshot.val();
+                callback(data);
+            });
+        }
+      </script>
+
+    <script src="./script.js"></script>
+</body>
+
+</html>
